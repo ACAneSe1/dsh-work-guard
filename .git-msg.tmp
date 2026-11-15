@@ -1,6 +1,0 @@
-docs: 发布前复核——README 安装/配置/测试/限制四段与实现对齐
-
-- engines 范围 0.2.3-0 → 0.4.0-0；工具一个 → 三个（work_verify/declare/ledger）；插槽补 input.left
-- 配置示例补 read-freshness / read-depth；verifyPattern 补 cargo/go/pytest
-- 测试数 144 → 162，清单补四类新测试；轮转/配置限制改成「有可运行验证脚本」
-- locale 文案：六条 → 九条，状态条 → 按钮 + 状态行
