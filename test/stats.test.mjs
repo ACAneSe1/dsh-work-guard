@@ -70,3 +70,27 @@ test('lifetime 反映台账总行数', () => {
   const stats = computeStats(rows, { getTime: r => r.ts, sinceTs: 0, today: day })
   assert.equal(stats.lifetime.rows, rows.length)
 })
+
+test('只统计源码改动：改文档不算"未验证"', () => {
+  const isSourceFile = path => /\.(ts|kt|js|mjs)$/u.test(path)
+  const mixed = [
+    row('edit', 60_000, { file: 'docs/README.md' }),
+    row('write', 70_000, { file: 'dsh-work-guard/index.js' }),
+    row('edit', 80_000, { file: 'notes.txt' }),
+  ]
+  const stats = computeStats(mixed, { getTime: r => r.ts, sinceTs: 0, today: day, isSourceFile })
+  assert.equal(stats.since.unverified, 1, '只有 index.js 是源码')
+  assert.equal(stats.since.sourceEdits, 1)
+  assert.equal(stats.since.edits, 3, '总改动数仍包含文档')
+})
+
+test('源码改动在验证之后 → 仍算未验证', () => {
+  const isSourceFile = path => path.endsWith('.ts')
+  const list = [
+    row('edit', 60_000, { file: 'a.ts' }),
+    row('verify', 70_000, { ok: true }),
+    row('edit', 80_000, { file: 'b.ts' }),
+  ]
+  const stats = computeStats(list, { getTime: r => r.ts, sinceTs: 0, today: day, isSourceFile })
+  assert.equal(stats.since.unverified, 1)
+})

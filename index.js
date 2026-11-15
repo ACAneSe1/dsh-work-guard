@@ -245,7 +245,13 @@ function guardStatus() {
   const rows = tail(2000)
   // 统计口径（第 1 步）：since = 本次插件启动以来；today = 当天全量。
   // 之前用"今天全量"当唯一口径，会把历史（含修复前误报）算进当前面板。
-  const stats = computeStats(rows, { getTime: entryTime, sinceTs: PLUGIN_START, today })
+  const stats = computeStats(rows, {
+    getTime: entryTime,
+    sinceTs: PLUGIN_START,
+    today,
+    // 2026-11-15：只有源码改动才算"未验证"；改文档/配置不该逼人跑测试
+    isSourceFile: isSourcePath,
+  })
   // 申报的欠账也必须是"本次启动以来"的口径：否则今天所有的历史 bypass 都会算成当前欠账
   // （2026-11-14 实测：整张台账算出 288 条，全是历史，和面板其他数字自相矛盾）。
   const rowsSinceStart = rows.filter(row => entryTime(row) >= PLUGIN_START)
