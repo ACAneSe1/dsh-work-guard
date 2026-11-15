@@ -1,0 +1,15 @@
+# 依赖与构建产物
+node_modules/
+dist/
+*.tgz
+
+# 系统与编辑器
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# 运行期数据（正常情况下在 profile 的 data/ 下，这里只是防手滑）
+work-ledger.jsonl*
+work-guard-state.json
+work-guard.config.json

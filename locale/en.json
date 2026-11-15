@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Work Guard",
+    "description": "Read before write, a change ledger, and detection of writes that bypassed the tools.",
+    "detail": "Injects six working habits into the system prompt; denies writes to source files that were not read in this session; records every write, verification and bypass; shows a status line under the composer."
+  }
+}
