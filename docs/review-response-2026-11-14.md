@@ -7,7 +7,7 @@
 
 | 编号 | 结论 | 怎么改的 / 为什么没改 |
 |---|---|---|
-| P0-1 私人项目名随包发布 | ✅ 已修 | 全仓库文本替换：`某 Android 项目/workspace/example/Vibe Coding` → `proj-a`/`com.example.app`/`/work`。复核：`grep -i "memore\|workspace\|example\|vibe coding"` = **0**。同时把 `docs/` 从 `files` 移出（设计稿不进包） |
+| P0-1 私人项目名随包发布 | ✅ 已修 | 全仓库文本替换：`<作者的项目名>` → `proj-a`/`com.example.app`/`/work`。复核：`grep -i "<私人项目名>"` = **0**。同时把 `docs/` 从 `files` 移出（设计稿不进包） |
 | P0-2 `engines.dsh` 上限过窄 | ✅ 已修 | `>=0.2.2-rc.1 <0.2.3-0` → `>=0.2.2-rc.1 <0.4.0-0`。**未做**：rc.1 上的冒烟（手上只有 rc.3 与更早的 rc.1 环境，未实测），风险写在 README |
 | P0-3 文档三处错误 | ✅ 已修 | 测试命令改 `npm test`；重启段改成"首次不需要，重装同一个 bundle 才需要"；安装方式 B 改成 `dsh plugin --profile … add` 并注明 Desktop 没有 pnpm；数据位置改成 `~/.dsh/data`（Desktop 不设 `DSH_PROFILE_DIR`） |
 | P0-4 两个同构项目互相解锁 | ✅ 已修 | 删掉 `READ_TAILS`；`recordRead` 与 `gate` 只用绝对 key（`keyOf` 会 resolve `..`）。`test/gate.test.mjs` 里那条"尾部相同"的断言已替换成"keyOf 相同 / 不同"。新增 1 条回归测试（`test/scan.test.mjs` 与 `gate.*` 覆盖） |
