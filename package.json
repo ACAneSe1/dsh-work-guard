@@ -1,6 +1,6 @@
 {
   "name": "dsh-work-guard",
-  "version": "0.15.7",
+  "version": "0.15.8",
   "description": "Work discipline for coding agents: read before write, a change ledger, and detection of writes that bypassed the tools.",
   "type": "module",
   "license": "MIT",

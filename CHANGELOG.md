@@ -1,5 +1,33 @@
 # Changelog
 
+## 0.15.8 — 2026-11-15
+
+CI 第一次跑就红了：ubuntu 两个 job 失败，windows 全过。**那不是测试写得松，是代码里有个真 bug。**
+
+### Fixed
+
+- **盘符路径在 Linux 上被 `resolve()` 拼坏。** `keyOf` 直接把 `resolve(p)` 当绝对化，
+  而 Linux 上 `resolve('E:/work/a.ts')` 不会保持原样——它拼成 `<cwd>/E:/work/a.ts`。
+  同一个文件在两个平台得到两个键，跨平台比较全错。
+
+  新增 `toAbsolute()`：盘符路径（`C:\` / `C:/`）在任何平台都**原样保留**；
+  POSIX 绝对路径走 `resolve()`；相对路径按 base 拼（base 也是盘符时用 `join`）。
+  `keyOf` / `projectRootOf` / `cwdHintsOf` / `writeTargetsOf` 统一走它。
+
+### Changed
+
+- **GitHub 首页改为中文**：`README.md` 现在是中文，英文在 `README.en.md`，两份顶部互相链接。
+  原因是 GitHub 只渲染 `README.md`——以前中文那份叫 `README.zh.md`，首页永远是英文。
+- 诚实范围更新：CI 在 `ubuntu-latest` 与 `windows-latest`（Node 22 / 24）四个组合全绿；
+  但**插件本体仍只在 Windows 上装过、跑过**，macOS 没有任何证据。
+
+### Tests
+
+- 期望值不再写死小写盘符：一律过 `normPath()`（Windows 折叠大小写、Linux 保留），
+  测试跟着真实行为走。
+- `relativeTo` 与写入目标改用真实临时目录 / POSIX 路径。
+- 新增一条 POSIX 绝对路径用例（163 条）。
+
 ## 0.15.7 — 2026-11-15
 
 ### Changed
