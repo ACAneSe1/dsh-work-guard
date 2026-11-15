@@ -49,6 +49,16 @@ test('projectRootOf 找不到标记时退回文件所在目录', () => {
 })
 
 test('relativeTo 给出相对根的显示路径', () => {
-  assert.equal(relativeTo('E:/work/proj', 'E:/work/proj/src/a.ts'), 'src/a.ts')
-  assert.equal(relativeTo('E:/work/proj', 'E:/other/b.ts'), 'E:/other/b.ts')
+  // 用真实临时目录，避免把盘符写死（CI 的 Linux 分支不认 E:/）
+  const root = makeTmp('relative-')
+  const file = join(root, 'src', 'a.ts')
+  mkdirSync(join(root, 'src'), { recursive: true })
+  writeFileSync(file, 'x\n', 'utf8')
+
+  assert.equal(relativeTo(root, file).replace(/\\/gu, '/'), 'src/a.ts')
+
+  // 根之外的文件：原样返回绝对路径
+  const outside = join(makeTmp('relative-out-'), 'b.ts')
+  const shown = relativeTo(root, outside).replace(/\\/gu, '/')
+  assert.ok(shown.endsWith('b.ts'), `根之外应给绝对路径，实际 ${shown}`)
 })
