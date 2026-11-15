@@ -75,7 +75,7 @@ npm pack                      # produces dsh-work-guard-<version>.tgz
 #   plugin_manager install_bundle <absolute path to the tgz>
 ```
 
-Requires DSH `>=0.2.2-rc.1 <0.2.3-0`.
+Requires DSH `>=0.2.2-rc.1 <0.4.0-0`.
 
 The plugin registers one HTTP route (`/work-guard/status`), one tool (`work_ledger`), one prompt
 section, and one client slot (`conversation.composer.dock`). Removing the bundle removes all of them.
@@ -112,11 +112,16 @@ milliseconds and a local-time day/clock for display only.
   "version": 1,
   "prompt": "…",
   "sourceExtensions": [".ts", ".kt"],
-  "verifyPattern": "gradlew|npm test",
+  "verifyPattern": "gradlew|npm test|cargo (build|test)|go test|pytest",
   "ledger": { "path": "", "rotateAtRows": 5000 },
   "state": { "readTtlHours": 24 },
   "projectMarkers": ["package.json", ".git"],
-  "rules": { "read-before-write": true, "no-unkeyed-derived-state": true }
+  "rules": {
+    "read-before-write": true,
+    "read-freshness": true,
+    "read-depth": true,
+    "no-unkeyed-derived-state": true
+  }
 }
 ```
 
@@ -152,7 +157,7 @@ There is no escape from read-before-write: read the file.
 npm test        # 等价于 node --test
 ```
 
-144 cases: path identity, project-root discovery, local-time compatibility, ledger rotation,
+162 cases: path identity, project-root discovery, local-time compatibility, ledger rotation,
 config merging, state TTL, rule registry, and the gate's deny/allow behaviour.
 
 ## Known limits
@@ -171,7 +176,9 @@ config merging, state TTL, rule registry, and the gate's deny/allow behaviour.
   checked is whether the read was *understood* — the guard verifies exposure, not comprehension.
 - **Only verified on Windows.** Path identity, project-root discovery and ledger rotation pass
   unit tests, but a run on Linux/macOS has not happened yet.
-- Ledger rotation and the config file have unit tests but have never triggered in a real session.
+- Ledger rotation and the config file are not on a real-session path, but `tools/verify-extra.mjs`
+  exercises them for real (it builds a 5 000-row ledger to trigger rotation, and writes a config
+  then re-reads it in a fresh process).
 
 ## License
 

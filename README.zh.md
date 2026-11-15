@@ -66,10 +66,11 @@ npm pack                      # 产出 dsh-work-guard-<version>.tgz
 #   plugin_manager install_bundle <tgz 的绝对路径>
 ```
 
-要求 DSH `>=0.2.2-rc.1 <0.2.3-0`。
+要求 DSH `>=0.2.2-rc.1 <0.4.0-0`。
 
-插件注册：一条 HTTP 路由（`/work-guard/status`）、一个工具（`work_ledger`）、
-一段系统提示、一个客户端插槽（`conversation.composer.dock`）。卸载 bundle 会一并移除。
+插件注册：一条 HTTP 路由（`/work-guard/status`）、**三个工具**（`work_verify` / `work_declare` /
+`work_ledger`）、一段系统提示、两个客户端插槽（`conversation.input.left` 放按钮、
+`conversation.composer.dock` 放状态行）。卸载 bundle 会一并移除。
 
 ## 数据
 
@@ -78,7 +79,7 @@ npm pack                      # 产出 dsh-work-guard-<version>.tgz
 
 ```
 work-ledger.jsonl        每次 write/edit/verify/bypass/note 一行
-work-guard-state.json    最近 24 小时读过的文件（重启后不必重读）
+work-guard-state.json    最近 24 小时读过的文件 + 读到第几行（重启后不必重读）
 work-guard.config.json   可选配置
 ```
 
@@ -91,11 +92,16 @@ work-guard.config.json   可选配置
   "version": 1,
   "prompt": "……",
   "sourceExtensions": [".ts", ".kt"],
-  "verifyPattern": "gradlew|npm test",
+  "verifyPattern": "gradlew|npm test|cargo (build|test)|go test|pytest",
   "ledger": { "path": "", "rotateAtRows": 5000 },
   "state": { "readTtlHours": 24 },
   "projectMarkers": ["package.json", ".git"],
-  "rules": { "read-before-write": true, "no-unkeyed-derived-state": true }
+  "rules": {
+    "read-before-write": true,
+    "read-freshness": true,
+    "read-depth": true,
+    "no-unkeyed-derived-state": true
+  }
 }
 ```
 
@@ -127,11 +133,14 @@ export function check(ctx) {
 ## 测试
 
 ```bash
-npm test        # 等价于 node --test
+npm test                          # 全部用例（162 条，几十秒）
+node --test --test-reporter=dot   # 只要结论时用这个：几行点阵
+node tools/verify-extra.mjs       # 轮转 / 配置文件 / 并发追加 三项运行验证
 ```
 
-144 条：路径同一性、项目根探测、本地时间兼容、台账轮转、配置合并、状态 TTL、规则注册表、
-闸门的放行/拒绝行为。
+162 条：路径同一性、项目根探测、本地时间兼容、台账轮转、配置合并、状态 TTL、规则注册表、
+闸门的放行/拒绝行为、验证结果三态（通过/失败/未知）、红→绿判定、JUnit XML 解析、
+脚本写入目标解析、0 条测试不算绿。
 
 ## 已知限制
 
@@ -143,7 +152,8 @@ npm test        # 等价于 node --test
 - `/work-guard/status` 没有鉴权，本机任意进程都能读；`recent[]` 只给文件名、不含命令。
 - 读会记录覆盖的行范围，改到范围外会被拒；但仍然无法检查「是否读懂」——它验证的是接触面，不是理解。
 - **只在 Windows 上验证过**：路径判定、项目根探测、台账轮转都有单测，但没有在 Linux/macOS 上实跑。
-- 台账轮转与配置文件只有单测，真实会话里从未触发过。
+- 台账轮转与配置文件不在真实会话里触发路径上，但有可运行的验证脚本（`tools/verify-extra.mjs`，
+  会真的建 5000 行台账触发轮转、真的写一份配置并重启进程读回）。
 
 ## 许可
 
