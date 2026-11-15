@@ -130,7 +130,7 @@ R7 的 `allow` 逃生口也合理，且只作用于那一行。
 | 项目类型 | 探测结果 |
 | --- | --- |
 | 有 `package.json#scripts.test` | `npm test`（来源 `package.json#scripts.test`） |
-| 有 `gradlew.bat` | `gradlew.bat test`（真实跑通了 Memore 的 Gradle 构建） |
+| 有 `gradlew.bat` | `gradlew.bat test`（真实跑通了 一个 Android 项目的 Gradle 构建） |
 | 只有 README | 明确报"没有认出验证命令"，并给出 `command:` 用法 |
 | 目录不存在 | 报错，但显示的是上溯到的父目录 `...\Temp`（见 P2-4） |
 
@@ -298,7 +298,7 @@ undeclared.count = 0  declaredCount = 1
 | 项 | 结果 |
 | --- | --- |
 | 零运行时依赖 | ✅ 只用 node 内置模块 |
-| 源码硬编码项目名 / 绝对路径 | ✅ 未发现（`Memore` / `memorandum` / `C:\` 全无） |
+| 源码硬编码项目名 / 绝对路径 | ✅ 未发现（`某 Android 项目` / `workspace` / `C:\` 全无） |
 | LICENSE | ✅ MIT |
 | README / README.zh | ✅ 中英双份 |
 | CHANGELOG | ✅ 写得具体，带"为什么"和"实测数据" |
@@ -350,7 +350,7 @@ node 把 `lib/test-names.js` 当成测试文件执行了（它匹配 `**/test-*.
 | **P0** | P0-2 | 发布包不含 `test/`，且 `lib/test-names.js` 被当测试 | `package.json#files` | 安装后 `npm test` 恒绿，零覆盖 |
 | **P1** | P1-1 | 测试留下 2587 个临时目录 / 13.1 MB | `test/*.mjs` 42 处 `mkdtemp` 无清理 | 每次测试污染 `%TEMP%` |
 | **P1** | P1-2 | 绕过扫描对"不带 cd 的绝对路径写入"漏报 | `index.js` `cwdHintsOf` 附近 | shell 改源码可以不进欠账 |
-| **P2** | P2-1 | `work_verify` 无参时跑宿主进程 cwd 的项目 | `index.js` `baseDir` | 本次实测白跑了一次 Memore 的全量 Gradle 构建 |
+| **P2** | P2-1 | `work_verify` 无参时跑宿主进程 cwd 的项目 | `index.js` `baseDir` | 本次实测白跑了一次 某 Android 项目 的全量 Gradle 构建 |
 | **P2** | P2-2 | `work_ledger` 里 `declare` 行显示 `undefined` | 渲染层 | 可读性 |
 | **P2** | P2-3 | 命令文本含 "npm test" 字样即记为验证 | `looksLikeVerify` | 本次实测：一个离线 node 脚本因命令行里嵌了 `command: "npm test"` 被记了一条 verify |
 | **P2** | P2-4 | 不存在的 cwd 报错显示父目录 | `projectRootFor` 上溯 | 定位时容易误读 |

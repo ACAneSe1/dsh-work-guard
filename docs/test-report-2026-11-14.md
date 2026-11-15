@@ -36,7 +36,7 @@
 ```js
 import { utimesSync } from "node:fs"
 process.env.DSH_PROFILE_DIR = String(process.env.TEMP) + "\\wg-guard-isolated"
-const mod = await import("file:///E:/Vibe%20Coding/memorandum/dsh-work-guard/index.js")
+const mod = await import("file:///E:/Vibe%20Coding/workspace/dsh-work-guard/index.js")
 const { gate, recordRead } = mod.__internals
 
 const FILE = "C:\\Users\\c1066\\AppData\\Local\\Temp\\wg-probe\\sample.ts"
