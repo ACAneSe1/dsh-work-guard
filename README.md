@@ -1,25 +1,41 @@
 # dsh-work-guard
 
-**Working discipline for coding agents — enforced, not suggested.**
+**Turn "I fixed it" into evidence you can check.**
 
-> Honest scope: the logic is covered by 54 tests and the packed bundle is verified to import
-> standalone, but this has only been run on the author's Windows machine. Linux/macOS path
-> handling and a fresh-profile install are **unverified** (see Known limits).
+> Not advice to the model — **four gates and one ledger**: a file you never read cannot be written;
+> a failed verification is never recorded as a pass; the tests that were red must go green before
+> the work counts as done.
+> **Honest scope**: only run on Windows + DSH Desktop so far; Linux/macOS path handling is
+> **unverified** (see Known limits).
 
-Telling a model "read the file first" is advice. Advice competes with the urge to finish the
-task, and loses. This plugin turns three habits into mechanisms:
+## Three things you have probably seen
+
+1. **"Fixed" — and the tests were never run.**
+2. **Tests red, report green.** (an empty suite, or a failure recorded as success)
+3. **The wrong place edited.** A file judged without reading it, or the first ten lines read and
+   line five hundred changed.
+
+This plugin speaks at exactly three moments:
+
+| Question | Its answer |
+|---|---|
+| Was this file read? | Not read → **write denied** |
+| You said "verified" — what was the exit code? | No exit code → recorded as unknown, **not a pass** |
+| Are the previously-red tests green now? | Not green → the panel stays red and names them |
+
+## Mechanisms, not suggestions
 
 | Mechanism | What it does |
 |---|---|
 | **Read before write** | `write` / `edit` on a source file that was not read in this session is **denied**. |
 | **Read freshness** | Denied when the file changed after you read it (2 s clock-skew tolerance). |
 | **Read depth** | Denied when the edited lines fall outside the ranges you actually read; replacing a file wholesale needs a full read. |
+| **Real verification** | `work_verify` runs the project's check and returns a few lines; the exit code is taken by the tool itself, never from a shell pipe. |
+| **Red → green** | Failing test names come from the output or the JUnit XML; the same tests must turn green. |
 | **Script declarations** | Shell writes are not blocked, but anything not declared with `work_declare` stays visible as unaccounted work. |
-| **Red → green evidence** | Verification output is parsed for failing test names; a fix that had red tests must turn them green. |
-| **Change ledger** | Every write/edit, every build command, and every detected bypass is appended to one JSONL file. |
-| **Bypass detection** | Shell writes never pass through the tool layer. After a shell call the guard scans for recently modified sources with no matching ledger entry and records them as `bypass`. |
-| **Prompt section** | Six habits plus two self-check questions, injected through `systemPrompt.section` so they arrive with **every** request instead of living in a document the model may never open. |
-| **Status bar** | A green dot under the composer: gate alive, edits today, verifications, unverified changes, bypass count. |
+| **Change ledger** | Every write, every verification (exit code + failing names), every denial and every bypass goes into one JSONL. |
+| **Prompt section** | Nine habits plus two self-check questions, injected through `systemPrompt.section`, so they arrive with **every** request. |
+| **UI** | One small button in the composer (pending items + history) and one status line under it: say something when there is something to say, otherwise just "no pending items". |
 | **One code-health rule** | `remember { derivedStateOf { … } }` — a keyless `remember` around `derivedStateOf` never recomputes. Denied at write time. **Kotlin-only.** |
 
 ## Why this exists
@@ -141,10 +157,10 @@ config merging, state TTL, rule registry, and the gate's deny/allow behaviour.
 
 ## Known limits
 
-- Path identity uses an absolute normalised key; read-tracking also accepts a three-segment tail so
-  that relative and absolute paths to the same file compare equal. Two different files with
-  identical three-segment tails in one session could be confused — rare, and the cost is a missed
-  prompt rather than a blocked edit.
+- Path identity is an **absolute normalised key** (`keyOf`). The old three-segment-tail matching was
+  removed in 0.3: it let two same-named files in different projects unlock each other. A relative
+  path is resolved against known project roots first; when it cannot be resolved the write is denied
+  (fail-closed).
 - Bypass scanning walks the repository on shell calls, capped at 200 hits and depth 16.
 - Configuration changes need a restart (no hot reload).
 - **Web / Desktop only.** `webServer` is a hard dependency (the status route lives there), so in a
