@@ -1,116 +1,99 @@
 # dsh-work-guard
 
-**Turn "I fixed it" into evidence you can check.**
+**把 agent 说过的「修好了」，变成能查的证据。**
 
-> Not advice to the model — **four gates and one ledger**: a file you never read cannot be written;
-> a failed verification is never recorded as a pass; the tests that were red must go green before
-> the work counts as done.
-> **Honest scope**: only run on Windows + DSH Desktop so far; Linux/macOS path handling is
-> **unverified** (see Known limits).
+> 中文 · [English](README.en.md)
 
-## Three things you have probably seen
+> 它不是给模型的劝告，是**四个闸门 + 一本账**：没读过的文件写不进去；失败的验证不会被记成通过；
+> 之前红的测试没变绿，就不算修完。
+> **诚实范围**：插件本身**只在 Windows + DSH Desktop 上实跑过**；
+> 测试在 Linux 与 Windows（Node 22 / 24）上由 CI 覆盖，但 **macOS 与 headless profile 未验证**。
 
-1. **"Fixed" — and the tests were never run.**
-2. **Tests red, report green.** (an empty suite, or a failure recorded as success)
-3. **The wrong place edited.** A file judged without reading it, or the first ten lines read and
-   line five hundred changed.
+## 你有没有遇到过这三种
 
-This plugin speaks at exactly three moments:
+1. **说「修好了」，其实测试根本没跑。**
+2. **测试是红的，报告是绿的。**（跑了个空套件；或者失败被记成了成功）
+3. **改了不该改的地方。** 文件没读过，凭印象改；或者只看了前 10 行，就去改第 500 行。
 
-| Question | Its answer |
+这个插件只在三个时刻说话：
+
+| 问题 | 它的回答 |
 |---|---|
-| Was this file read? | Not read → **write denied** |
-| You said "verified" — what was the exit code? | No exit code → recorded as unknown, **not a pass** |
-| Are the previously-red tests green now? | Not green → the panel stays red and names them |
+| 这个文件，你读过吗？ | 没读过 → **拒绝写入** |
+| 你说的「验证过」，退出码是多少？ | 拿不到退出码 → 记「未知」，**不算通过** |
+| 之前红的那几条，现在绿了吗？ | 没变绿 → 面板红着，并说清是哪几条 |
 
-## Mechanisms, not suggestions
+## 机制（不是建议）
 
-| Mechanism | What it does |
+| 机制 | 行为 |
 |---|---|
-| **Read before write** | `write` / `edit` on a source file that was not read in this session is **denied**. |
-| **Read freshness** | Denied when the file changed after you read it (2 s clock-skew tolerance). |
-| **Read depth** | Denied when the edited lines fall outside the ranges you actually read; replacing a file wholesale needs a full read. |
-| **Real verification** | `work_verify` runs the project's check and returns a few lines; the exit code is taken by the tool itself, never from a shell pipe. |
-| **Red → green** | Failing test names come from the output or the JUnit XML; the same tests must turn green. |
-| **Script declarations** | Shell writes are not blocked, but anything not declared with `work_declare` stays visible as unaccounted work. |
-| **Change ledger** | Every write, every verification (exit code + failing names), every denial and every bypass goes into one JSONL. |
-| **Prompt section** | Nine habits plus two self-check questions, injected through `systemPrompt.section`, so they arrive with **every** request. |
-| **UI** | One small button in the composer (pending items + history) and one status line under it: say something when there is something to say, otherwise just "no pending items". |
-| **One code-health rule** | `remember { derivedStateOf { … } }` — a keyless `remember` around `derivedStateOf` never recomputes. Denied at write time. **Kotlin-only.** |
+| **先读再写** | 本次会话没读过的源码文件，`write` / `edit` **直接拒绝** |
+| **读的新鲜度** | 读完文件后文件又被改（超过 2 秒时钟容差）→ 拒绝 |
+| **读的深度** | 改动落在你没读过的行范围 → 拒绝；整份覆盖已存在文件要求整文件读过 |
+| **验证要真结果** | `work_verify` 跑项目测试，只回几行；**退出码由它自己拿**，不经管道，不靠猜 |
+| **红 → 绿** | 从输出/JUnit XML 里抽出失败的用例名；修完必须让同一批用例变绿 |
+| **脚本申报** | shell 写入拦不住，但没申报的脚本改动会一直显出来（`work_declare`） |
+| **改动台账** | 每次写入、每次验证（带退出码与失败名）、每次拦截、每次绕过，都记进一个 JSONL |
+| **提示段** | 九条工作方式 + 两问自查，通过 `systemPrompt.section` 注入，**每次请求都在** |
+| **界面** | 输入栏一个小按钮（点开是待办 + 历史），输入框下一行状态：有事说事，没事只说「没有待办」 |
+| **一条代码卫生规则** | 无 key 的 `remember { derivedStateOf { … } }` 永不重算 —— 写入时拒绝（**只在 Kotlin 项目生效**） |
 
-## Why this exists
+## 为什么会有这个插件
 
-The trigger, quoted from the person this was built for:
+起因是一句原话：
 
-> "When you chase a bug, review the code first — don't guess at the problem and then cover it with
-> another pile of code."
+> "找 bug 首先应该 review 代码，而不是猜测问题和用另一堆代码去覆盖问题。"
 
-Everything here comes from that sentence. In one day, the same three failures repeated:
+一天之内，同样的三种失败反复出现：
 
-1. **Guessing instead of reading.** A file's text was judged from its shape; the "fix" removed a
-   design the user had asked for. No measurement, no question.
-2. **Covering the symptom.** The bug lived in one line; the patch added code somewhere else so the
-   symptom stopped showing.
-3. **Claiming success without evidence.** "Fixed" was said after an edit, before any build.
+1. **猜而不读**：凭"看起来像"判断一段代码，然后把用户要的设计删掉了。没有测量，也没有提问。
+2. **盖住症状**：bug 在某一行，补丁加在另一处，让症状不再显示。
+3. **没验证就宣布修好**：改完就说"修好了"，中间没有任何一次构建。
 
-None of those are solved by a better prompt. They are solved by moving the cost to the moment of
-writing: **if the file was not read, the write does not happen.**
+这三件事都不是"提示词写得更好"能解决的。解法是**把成本挪到写入的那一刻**：
+**没读过，就写不进去。**
 
-## What it does not do
+## 它不做什么
 
-- **It cannot block shell writes.** `pwsh` / `bash` do not go through the tool layer; whether they
-  can write is a session-permission question, not a plugin question. The guard records them instead
-  of pretending to stop them. The ledger number `bypass` is how that shows up.
-- **It does not judge quality.** It knows whether a file was read and whether a build ran, not
-  whether the change is correct.
-- **No project paths are hardcoded**; project roots are discovered from the files actually
-  edited, and rules can be language-scoped. The built-in Kotlin/Compose rule runs **only** in
-  Kotlin projects; the three read rules apply everywhere.
+- **拦不住 shell 写入**。`pwsh` / `bash` 不走工具层；能不能写是会话权限的问题，不是插件能补的。
+  它只负责**记录**，台账里的 `bypass` 就是这个数字。
+- **不判断质量**。它知道文件读没读、构建跑没跑，不知道改动对不对。
+- **不写死项目路径**；项目根从实际被编辑的文件反推，且规则可以限定语言。内置的
+  `no-unkeyed-derived-state` **只在 Kotlin 项目里运行**；三条与「读」有关的规则所有语言通用。
 
-## Install
+## 安装
 
 ```bash
-npm pack                      # produces dsh-work-guard-<version>.tgz
-# then, in the harness:
-#   plugin_manager install_bundle <absolute path to the tgz>
+npm pack                      # 产出 dsh-work-guard-<version>.tgz
+# 然后在 harness 里：
+#   plugin_manager install_bundle <tgz 的绝对路径>
 ```
 
-Requires DSH `>=0.2.2-rc.1 <0.4.0-0`.
+要求 DSH `>=0.2.2-rc.1 <0.4.0-0`。
 
-The plugin registers one HTTP route (`/work-guard/status`), one tool (`work_ledger`), one prompt
-section, and one client slot (`conversation.composer.dock`). Removing the bundle removes all of them.
+插件注册：一条 HTTP 路由（`/work-guard/status`）、**三个工具**（`work_verify` / `work_declare` /
+`work_ledger`）、一段系统提示、两个客户端插槽（`conversation.input.left` 放按钮、
+`conversation.composer.dock` 放状态行）。卸载 bundle 会一并移除。
 
-## Data
+## 数据
 
-Everything lives in `<DSH_PROFILE_DIR>/data/`, or `~/.dsh/data/` when that variable is not set
-(the Desktop host does not set it) — never in your repository:
+全部在 `<DSH_PROFILE_DIR>/data/` 下；该变量没有时用 `~/.dsh/data/`（Desktop 宿主不设这个变量），
+**不写进你的仓库**：
 
 ```
-work-ledger.jsonl        one row per write/edit/verify/bypass/note
-work-guard-state.json    files read in the last 24h (so a restart doesn't force re-reading)
-work-guard.config.json   optional configuration
+work-ledger.jsonl        每次 write/edit/verify/bypass/note 一行
+work-guard-state.json    最近 24 小时读过的文件 + 读到第几行（重启后不必重读）
+work-guard.config.json   可选配置
 ```
 
-Ledger rows (`v: 2`):
+## 配置
 
-```json
-{"v":2,"ts":1794656070764,"day":"2026-11-14","t":"18:32","kind":"edit","file":"src/a.ts","lines":12}
-{"v":2,"ts":...,"kind":"verify","cmd":"./gradlew :app:assembleDebug"}
-{"v":2,"ts":...,"kind":"bypass","file":"src/b.ts","cmd":"python patch.py"}
-{"v":2,"ts":...,"kind":"note","note":"why this change was made"}
-```
-
-Old rows without `ts` are read as UTC (that is what the previous version wrote); new rows carry
-milliseconds and a local-time day/clock for display only.
-
-## Configuration (optional)
-
-`<profile>/data/work-guard.config.json`, merged over defaults:
+`<profile>/data/work-guard.config.json`，与默认值深合并：
 
 ```json
 {
   "version": 1,
-  "prompt": "…",
+  "prompt": "……",
   "sourceExtensions": [".ts", ".kt"],
   "verifyPattern": "gradlew|npm test|cargo (build|test)|go test|pytest",
   "ledger": { "path": "", "rotateAtRows": 5000 },
@@ -125,61 +108,57 @@ milliseconds and a local-time day/clock for display only.
 }
 ```
 
-Precedence: environment (`DSH_WORK_GUARD_PROMPT`, `DSH_WORK_GUARD_LEDGER`) → file → defaults.
-A broken file falls back to defaults; `/work-guard/status` reports `configSource`.
+优先级：环境变量（`DSH_WORK_GUARD_PROMPT`、`DSH_WORK_GUARD_LEDGER`）→ 文件 → 默认。
+坏文件退回默认；`/work-guard/status` 会报 `configSource`。
 
-## Adding a rule
+## 加一条规则
 
-A rule is an object; the gate is a registry:
+规则是一个对象，闸门是注册表：
 
 ```js
-// lib/rules/no-platform-in-core.js
 export const id = 'no-platform-in-core'
 export const stage = 'pre-write'
 export const applies = ctx => ctx.filePath.includes('/core/')
 export function check(ctx) {
   return /android\.|process\.platform/u.test(ctx.afterText ?? '')
-    ? { deny: id, reason: 'core must not know about platforms' }
+    ? { deny: id, reason: 'core 不许出现平台符号' }
     : null
 }
 ```
 
-Register it once (`registerRule(rule)`) — `gate()` does not change.
+注册一次（`registerRule(rule)`）—— **`gate()` 不用改。**
 
-## Escape hatch
+## 破例
 
-`// work-guard: allow` exempts a line from the `derivedStateOf` rule.
-There is no escape from read-before-write: read the file.
+`// work-guard: allow` 可以让某一行跳过 `derivedStateOf` 规则。
+先读再写**没有破例**：去读。
 
-## Tests
+## 测试
 
 ```bash
-npm test        # 等价于 node --test
+npm test                          # 全部用例（162 条，几十秒）
+node --test --test-reporter=dot   # 只要结论时用这个：几行点阵
+node tools/verify-extra.mjs       # 轮转 / 配置文件 / 并发追加 三项运行验证
 ```
 
-162 cases: path identity, project-root discovery, local-time compatibility, ledger rotation,
-config merging, state TTL, rule registry, and the gate's deny/allow behaviour.
+162 条：路径同一性、项目根探测、本地时间兼容、台账轮转、配置合并、状态 TTL、规则注册表、
+闸门的放行/拒绝行为、验证结果三态（通过/失败/未知）、红→绿判定、JUnit XML 解析、
+脚本写入目标解析、0 条测试不算绿。
 
-## Known limits
+## 已知限制
 
-- Path identity is an **absolute normalised key** (`keyOf`). The old three-segment-tail matching was
-  removed in 0.3: it let two same-named files in different projects unlock each other. A relative
-  path is resolved against known project roots first; when it cannot be resolved the write is denied
-  (fail-closed).
-- Bypass scanning walks the repository on shell calls, capped at 200 hits and depth 16.
-- Configuration changes need a restart (no hot reload).
-- **Web / Desktop only.** `webServer` is a hard dependency (the status route lives there), so in a
-  headless or SDK profile the plugin does not activate at all.
-- `/work-guard/status` has no authentication; it answers any local process. `recent[]` is reduced
-  to file names and contains no command text.
-- `read` now records the covered line ranges; an edit outside them is denied. What still cannot be
-  checked is whether the read was *understood* — the guard verifies exposure, not comprehension.
-- **Only verified on Windows.** Path identity, project-root discovery and ledger rotation pass
-  unit tests, but a run on Linux/macOS has not happened yet.
-- Ledger rotation and the config file are not on a real-session path, but `tools/verify-extra.mjs`
-  exercises them for real (it builds a 5 000-row ledger to trigger rotation, and writes a config
-  then re-reads it in a fresh process).
+- 判定键是**绝对化路径**（`keyOf`）：「尾部 3 段」那套宽松匹配已经在 0.3 删掉了，
+  因为两个同构项目里的同名文件会互相解锁。相对路径先按已知项目根绝对化，解析不出来就拒绝（fail-closed）。
+- 绕过扫描在每次 shell 调用时遍历仓库，上限 200 条、深度 16。
+- 改配置需要重启（没有热重载）。
+- **只支持 Web / Desktop**：`webServer` 是硬依赖（状态路由挂在它上面），headless 或 SDK profile 里不会激活。
+- `/work-guard/status` 没有鉴权，本机任意进程都能读；`recent[]` 只给文件名、不含命令。
+- 读会记录覆盖的行范围，改到范围外会被拒；但仍然无法检查「是否读懂」——它验证的是接触面，不是理解。
+- **只在 Windows 上装过、跑过**：单元测试由 CI 在 Linux（ubuntu-latest）与 Windows 上跑，Node 22 / 24
+  四个组合全绿；但**插件本体没有在 Linux/macOS 上注册进 DSH 实跑过**，macOS 完全没有证据。
+- 台账轮转与配置文件不在真实会话里触发路径上，但有可运行的验证脚本（`tools/verify-extra.mjs`，
+  会真的建 5000 行台账触发轮转、真的写一份配置并重启进程读回）。
 
-## License
+## 许可
 
 MIT
