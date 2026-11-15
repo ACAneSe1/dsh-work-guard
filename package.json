@@ -5,6 +5,14 @@
   "type": "module",
   "license": "MIT",
   "keywords": ["dsh", "cordis", "agent", "guard", "guardrails", "ledger", "workflow", "code-review"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ACAneSe1/dsh-work-guard.git"
+  },
+  "homepage": "https://github.com/ACAneSe1/dsh-work-guard#readme",
+  "bugs": {
+    "url": "https://github.com/ACAneSe1/dsh-work-guard/issues"
+  },
   "scripts": {
     "test": "node --test"
   },
